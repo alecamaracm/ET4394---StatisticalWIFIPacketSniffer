@@ -1,14 +1,3 @@
-/* WiFi station Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
-#include "WIFI_CREDENTIALS.h"
-
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -22,20 +11,26 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-#include "WIFI_CREDENTIALS.h"
+#include "CREDENTIALS.h"
+#include "RedisFunctions.h"
 
 static const char *TAG = "wifi station";
+
+bool WiFiConnected=false;
 
 static void event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
+        WiFiConnected=false;
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {        
         esp_wifi_connect();
-        ESP_LOGI(TAG,"failed to connect to the AP!");
+        WiFiConnected=false;
+        ESP_LOGI(TAG,"Disconnected to the AP!");
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED) {                
-        ESP_LOGI(TAG,"connected to the AP!");
+        ESP_LOGI(TAG,"Connected to the AP!");
+        WiFiConnected=true;
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -100,5 +95,9 @@ void app_main(void)
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
 
-    while(true){vTaskDelay(1000/portTICK_PERIOD_MS);}
+    while(true){
+        
+        PushToRedis("testKey22","val11");
+        vTaskDelay(1000/portTICK_PERIOD_MS);        
+    }
 }
