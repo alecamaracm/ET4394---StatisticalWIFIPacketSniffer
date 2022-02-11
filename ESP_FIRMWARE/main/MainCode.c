@@ -74,22 +74,25 @@ void DoWork(){
     //Reset the stats counters
     memset(MACsSEEN,0,sizeof(MACsSEEN));
 
-    recordDataEnabled=true;
-    //Keep recording samples here during the "wake" time
-    vTaskDelay(TIME_WORKING_MS/portTICK_PERIOD_MS);  
-    recordDataEnabled=false;
+    recordDataEnabled=true; //Start gathering smamples    
+    vTaskDelay(TIME_WORKING_MS/portTICK_PERIOD_MS);   //Keep recording samples here during the "wake" time
+    recordDataEnabled=false; //Stop gathering samples
     vTaskDelay(500/portTICK_PERIOD_MS); //Wait for any samples still coming
 
+
+    //Create final stats //////////////////////////////////////////////////////////////////////////
 
     //Count how many MACs
     int seenMACcount=0;
     while(seenMACcount<MAX_MAC_COUNT && MACsSEEN[seenMACcount].blockUsed) seenMACcount++;
-
     ESP_LOGI("results","Seen %d different MACs",seenMACcount);
+
+    //Create final stats END //////////////////////////////////////////////////////////////////////////
+
+    
 
     //Push the new data to the database
     PushToRedis("key","value");  
-
     //Exit, the system will sleep here
 }
 
@@ -123,34 +126,4 @@ void WIFI_DATA_CALLBACK(void* data,wifi_promiscuous_pkt_type_t packetType){
         }
     }else 
         ESP_LOGW("callback","Can not find storage space for RX MAC!");
-
-    
-
-
-
-
-
-
-    /*switch(packetType){
-        case WIFI_PKT_MGMT:
-        {
-            ESP_LOGI("callback","Got management packet! Size: %u",dataLen);
-        }
-        break;
-        case WIFI_PKT_CTRL:
-        {
-            ESP_LOGI("callback","Got control packet! Size: %u",dataLen);
-        }
-        break;
-        case WIFI_PKT_DATA:
-        {
-            ESP_LOGI("callback","Got data packet! Size: %u",dataLen);
-        }
-        break;
-        case WIFI_PKT_MISC:
-        {
-            ESP_LOGI("callback","Got misc packet! Size: %u",dataLen);
-        }
-        break;
-    }*/
 }
