@@ -26,3 +26,8 @@
 
 //GENERAL SETTINGS
 #define DEVICE_NAME "testALE1"
+
+#define MAX_MAC_COUNT 1000
+
+#define TIME_WORKING_MS 10000 //60 seconds = 1 mins
+#define TIME_SLEEPING_MS 30000 //240 seconds = 4mins

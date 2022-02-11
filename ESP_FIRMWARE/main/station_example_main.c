@@ -7,6 +7,7 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+#include "esp_sleep.h"
 
 #include "lwip/err.h"
 #include "lwip/sys.h"
@@ -16,7 +17,10 @@
 
 static const char *TAG = "wifi station";
 
-bool WiFiConnected=false;
+static bool WiFiConnected=false;
+
+void DoWork();
+void WIFI_DATA_CALLBACK(void* data,wifi_promiscuous_pkt_type_t packetType);
 
 static void event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
@@ -78,9 +82,13 @@ void wifi_init_sta(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
     ESP_ERROR_CHECK(esp_wifi_start() );
+    ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
+    ESP_ERROR_CHECK(esp_wifi_set_promiscuous_rx_cb(WIFI_DATA_CALLBACK));
 
     ESP_LOGI(TAG, "wifi_init_sta finished.");
 }
+
+
 
 void app_main(void)
 {
@@ -95,9 +103,16 @@ void app_main(void)
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
 
-    while(true){
+    vTaskDelay(1000/portTICK_RATE_MS); //Give everything some time to initialize
+
+    ESP_LOGI("main","ESP READY");
+
+    DoWork();
         
-        PushToRedis("testKey22","val11");
-        vTaskDelay(1000/portTICK_PERIOD_MS);        
-    }
+    esp_wifi_stop();
+
+    ESP_LOGI("main","ESP GOING TO SLEEP");
+    vTaskDelay(500/portTICK_RATE_MS); //Give everything some time to flush
+    //Sleep
+    esp_deep_sleep(TIME_SLEEPING_MS*1000);        
 }
