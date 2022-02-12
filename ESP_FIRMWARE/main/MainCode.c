@@ -39,6 +39,8 @@ struct mac_data{
     bool blockUsed; //whether this MAC storage block is being used
 };
 
+
+
 struct mac_data MACsSEEN[MAX_MAC_COUNT];
 
 //Finds the right storage block for the specified MAC. If it could not find one, returns false
@@ -64,10 +66,10 @@ bool FindMACStorageStruct(uint8_t* macPtr,struct mac_data** blockAddress){
     return false; //Could not find an empty spot 
 }
 
-
-
-
-
+char* MACToString(uint8_t* input, char* macadress){
+    snprintf(macadress, 18, "%02x:%02x:%02x:%02x:%02x:%02x" ,input[0], input[1], input[2], input[3], input[4], input[5]);
+    return macadress;
+}
 
 //This function is called whenever wifi is started. When this function returns, the system will go into sleep mode
 void DoWork(){        
@@ -84,15 +86,27 @@ void DoWork(){
 
     //Count how many MACs
     int seenMACcount=0;
-    while(seenMACcount<MAX_MAC_COUNT && MACsSEEN[seenMACcount].blockUsed) seenMACcount++;
-    ESP_LOGI("results","Seen %d different MACs",seenMACcount);
+    struct mac_data* temp;
+    //while(seenMACcount<MAX_MAC_COUNT && MACsSEEN[seenMACcount].blockUsed) seenMACcount++;
+    while(seenMACcount<MAX_MAC_COUNT && MACsSEEN[seenMACcount].blockUsed){
+        temp = &MACsSEEN[seenMACcount];
 
+        // 00:aa:bb:cc:dd:ee
+        
+        char macadress[18];
+        MACToString(temp->mac, macadress);
+        ESP_LOGW("results","Mac is %s", macadress);
+        
+        seenMACcount++; 
+    }
+    ESP_LOGI("results","Seen %d different MACs",seenMACcount);
+    
     //Create final stats END //////////////////////////////////////////////////////////////////////////
 
     
 
     //Push the new data to the database
-    PushToRedis("key","value");  
+    //PushToRedis("key","value");  
     //Exit, the system will sleep here
 }
 
