@@ -65,10 +65,6 @@ bool FindMACStorageStruct(uint8_t* macPtr,struct mac_data** blockAddress){
 }
 
 
-
-
-
-
 //This function is called whenever wifi is started. When this function returns, the system will go into sleep mode
 void DoWork(){        
     //Reset the stats counters
@@ -86,13 +82,12 @@ void DoWork(){
     int seenMACcount=0;
     while(seenMACcount<MAX_MAC_COUNT && MACsSEEN[seenMACcount].blockUsed) seenMACcount++;
     ESP_LOGI("results","Seen %d different MACs",seenMACcount);
-
+    ESP_LOGW("results","This is me!");
     //Create final stats END //////////////////////////////////////////////////////////////////////////
 
-    
 
     //Push the new data to the database
-    PushToRedis("key","value");  
+    //PushToRedis("key","value");  
     //Exit, the system will sleep here
 }
 
