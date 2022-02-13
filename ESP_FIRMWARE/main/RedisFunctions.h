@@ -3,4 +3,4 @@
 
 
 //Returns whether it succeded
-void PushToRedis(char* key, char* value);
+void PushToRedis(char* key, char* value,bool append);

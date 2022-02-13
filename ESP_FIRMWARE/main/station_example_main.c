@@ -11,13 +11,14 @@
 
 #include "lwip/err.h"
 #include "lwip/sys.h"
+#include "sntp.h"
 
 #include "CREDENTIALS.h"
 #include "RedisFunctions.h"
 
 static const char *TAG = "wifi station";
 
-static bool WiFiConnected=false;
+bool WiFiConnected=false;
 
 void DoWork();
 void WIFI_DATA_CALLBACK(void* data,wifi_promiscuous_pkt_type_t packetType);
@@ -84,6 +85,10 @@ void wifi_init_sta(void)
     ESP_ERROR_CHECK(esp_wifi_start() );
     ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
     ESP_ERROR_CHECK(esp_wifi_set_promiscuous_rx_cb(WIFI_DATA_CALLBACK));
+
+    sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    sntp_setservername(0, "pool.ntp.org");
+    sntp_init();
 
     ESP_LOGI(TAG, "wifi_init_sta finished.");
 }

@@ -20,8 +20,8 @@ char AUTH_COMMAND[] ="AUTH " REDIS_PASSWORD "\r\n";
 
 char redisTag[] = "redis"; //Used to identify logs coming from here
 
-void PushToRedis(char* key, char* value){
-    ESP_LOGI(redisTag,"Pushed key %s to redis.",key);
+void PushToRedis(char* key, char* value, bool append){
+    ESP_LOGI(redisTag,"Pushed key %s to redis. Value: %s\n",key,value);
 
     struct sockaddr_in dest_addr;
     dest_addr.sin_addr.s_addr = inet_addr(REDIS_HOST_IP);
@@ -51,7 +51,7 @@ void PushToRedis(char* key, char* value){
         goto end;
     }
 
-    err = send(sock,"SET " , strlen("SET "), 0);
+    err = send(sock,(append?"APPEND ":"SET ") , strlen((append?"APPEND ":"SET ")), 0); //APPEND or SET, as you want
     if (err < 0) {
         ESP_LOGE(redisTag, "Error occurred during sending key (1): errno %d", errno);
         goto end;
@@ -63,7 +63,7 @@ void PushToRedis(char* key, char* value){
         goto end;
     }
 
-    err = send(sock," ", 1, 0);
+    err = send(sock," \"", 2, 0);
     if (err < 0) {
         ESP_LOGE(redisTag, "Error occurred during sending key (2): errno %d", errno);
         goto end;
@@ -75,7 +75,7 @@ void PushToRedis(char* key, char* value){
         goto end;
     }
 
-    err = send(sock,"\r\n" , 2, 0);
+    err = send(sock,"\"\r\n" , 3, 0);
     if (err < 0) {
         ESP_LOGE(redisTag, "Error occurred during sending key (4): errno %d", errno);
         goto end;
@@ -89,4 +89,5 @@ end:
         shutdown(sock, 0);
         close(sock);
     }
+    
 }

@@ -9,8 +9,13 @@
 
 #include "CREDENTIALS.h"
 #include "RedisFunctions.h"
+#include <driver/adc.h>
+#include "time.h"
 
 void GoToSleep();
+
+char keyToSend[256];
+char valueToAppend[1024];
 
 ////////////////////////// INTERNAL WIFI STRUCTURE //////////////////////
 struct wifi_packet{
@@ -25,7 +30,7 @@ struct wifi_packet{
 };
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-static bool WiFiConnected=false;
+extern bool WiFiConnected;
 bool recordDataEnabled=false;
 
 struct mac_data{
@@ -90,13 +95,13 @@ void DoWork(){
     //while(seenMACcount<MAX_MAC_COUNT && MACsSEEN[seenMACcount].blockUsed) seenMACcount++;
     while(seenMACcount<MAX_MAC_COUNT && MACsSEEN[seenMACcount].blockUsed){
         temp = &MACsSEEN[seenMACcount];
-
-        // 00:aa:bb:cc:dd:ee
-        
+        // 00:aa:bb:cc:dd:ee        
         char macadress[18];
         MACToString(temp->mac, macadress);
         ESP_LOGW("results","Mac is %s", macadress);
-        
+        if(strcmp(macadress,"a4:50:46:4c:af:3b")==0){
+            ESP_LOGE("results","Ale found!");
+        }
         seenMACcount++; 
     }
     ESP_LOGI("results","Seen %d different MACs",seenMACcount);
@@ -106,7 +111,55 @@ void DoWork(){
     
 
     //Push the new data to the database
-    //PushToRedis("key","value");  
+    if(!WiFiConnected) return; //Don't even try to send data if we are not connected to a wifi network
+
+    //Get current time (from NTP servers as set in the WIFI initialization)
+    struct timeval tv_now;
+    gettimeofday(&tv_now, NULL);
+    int64_t time_us = (int64_t)tv_now.tv_sec * 1000L + (int64_t)tv_now.tv_usec/1000;
+
+    //Get our own MAC
+    uint8_t myMAC[6];
+    ESP_ERROR_CHECK(esp_read_mac(myMAC, ESP_MAC_WIFI_STA));
+
+
+    //Create key
+     char myMacString[18];
+    MACToString(myMAC, myMacString);
+    snprintf(keyToSend, sizeof(keyToSend),"TUDelftDeviceData|%s|%lld",DEVICE_NAME,time_us);
+
+    //Create fixed lines for the value and submit them
+    snprintf(valueToAppend,sizeof(valueToAppend),"%d\\r\\n%s\\r\\n",seenMACcount,myMacString);
+    PushToRedis(keyToSend, valueToAppend, false); //Don't append here
+
+    //Push each line
+    char* currentPrintLocation = valueToAppend;
+    seenMACcount=0;
+    while(seenMACcount<MAX_MAC_COUNT && MACsSEEN[seenMACcount].blockUsed){
+        temp = &MACsSEEN[seenMACcount];
+        // 00:aa:bb:cc:dd:ee        
+        char macadress[18];
+        MACToString(temp->mac, macadress);
+
+        ESP_LOGW("mac","%s",macadress);
+        int remainingSpaceInValue=valueToAppend+sizeof(valueToAppend)-currentPrintLocation;
+
+        currentPrintLocation+= snprintf(currentPrintLocation,remainingSpaceInValue,"%s|%u|%u|%u|%u|%llu|%llu\\r\\n",
+                    macadress,temp->managementPacketCountTX,temp->managementPacketCountRX,temp->dataPacketCountTX,temp->dataPacketCountRX,temp->dataPacketTotalSizeTX,temp->dataPacketTotalSizeRX);
+
+        if(remainingSpaceInValue< 256){ //If the next MAC data has a chance to not fit in the buffer, just append it to the redis key and start again
+            PushToRedis(keyToSend,valueToAppend,true); //Append the next block of data to redis
+            currentPrintLocation = valueToAppend;
+        }
+        seenMACcount++; 
+    }
+
+    //If there is data in the buffer push it to redis
+    if(currentPrintLocation!=valueToAppend){
+        PushToRedis(keyToSend,valueToAppend,true); //Append the next block of data to redis
+    }
+    
+
     //Exit, the system will sleep here
 }
 
