@@ -3,11 +3,11 @@
 #define WIFI_SSID "testSSID"
 
 //Comment this line if you would like to use a normal WiFi network
-//#define USE_EDUORAM
+#define USE_EDUORAM
 
 #ifdef USE_EDUORAM
-    #define WIFI_EDU_USERNAME "testUsername"
-    #define WIFI_EDU_PASSWORD "testPassword"
+    #define WIFI_EDU_USERNAME "acabrerizo@tudelft.nl"
+    #define WIFI_EDU_PASSWORD ""
 #else
     #define WIFI_PASS "testPassword"
 #endif
@@ -25,12 +25,12 @@
 
 
 //GENERAL SETTINGS
-#define DEVICE_NAME "testALE1"
+#define DEVICE_NAME "EWIlocker"
 
 #define MAX_MAC_COUNT 1000
 
-#define TIME_WORKING_MS 120000 //120 seconds = 2 mins
-#define TIME_SLEEPING_MS 480000 //240 seconds = 8mins
+//#define TIME_WORKING_MS 120000 //120 seconds = 2 mins
+//#define TIME_SLEEPING_MS 480000 //480 seconds = 8mins    //10 days of battery life
 
-//#define TIME_WORKING_MS 10000 //120 seconds = 2 mins
-//#define TIME_SLEEPING_MS 30000 //240 seconds = 4mins
+#define TIME_WORKING_MS 120000 //120 seconds = 2 mins
+#define TIME_SLEEPING_MS 240000 //240 seconds = 4mins   //6 days of battery life
