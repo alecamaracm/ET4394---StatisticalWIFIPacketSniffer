@@ -18,7 +18,7 @@
 //REDIS
 #define REDIS_HOST_IP "95.179.129.52"
 #define REDIS_HOST_PORT 6379
-#define REDIS_PASSWORD "wowThisIsAVeryHardPasswordThatNoOneWouldBeAbleToFind69*"
+#define REDIS_PASSWORD "hdaJA0ic6tVm7pxAZSofRugF4FPNFQVHQsQmsGQ2mB9d2eWvbSwEBhnGUbrhNATls9dQF0e8Z2tFzK4CZcpttoqzdSHMrCyIbcr"
 
 
 
@@ -30,4 +30,7 @@
 #define MAX_MAC_COUNT 1000
 
 #define TIME_WORKING_MS 120000 //120 seconds = 2 mins
-#define TIME_SLEEPING_MS 240000 //240 seconds = 4mins
+#define TIME_SLEEPING_MS 480000 //240 seconds = 8mins
+
+//#define TIME_WORKING_MS 10000 //120 seconds = 2 mins
+//#define TIME_SLEEPING_MS 30000 //240 seconds = 4mins

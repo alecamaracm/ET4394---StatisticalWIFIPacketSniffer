@@ -168,7 +168,7 @@ void WIFI_DATA_CALLBACK(void* data,wifi_promiscuous_pkt_type_t packetType){
     if(!recordDataEnabled) return;
     wifi_pkt_rx_ctrl_t* metadata=&((wifi_promiscuous_pkt_t*)data)->rx_ctrl;
     struct wifi_packet* wifiPacket = ((wifi_promiscuous_pkt_t*)data)->payload;    
-    unsigned int wifiDataLen = metadata->sig_len - sizeof(struct wifi_packet) -4; //-4 for the checksum
+    unsigned int wifiDataLen = metadata->sig_len-4; //-4 bc the checksum is included (and at the end)
     
     //Find the MAC storage blocks
     struct mac_data* TXMAC_StoragePtr=NULL;
