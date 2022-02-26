@@ -1,15 +1,15 @@
 //WIFI
 
-#define WIFI_SSID "testSSID"
+#define WIFI_SSID ""
 
 //Comment this line if you would like to use a normal WiFi network
-#define USE_EDUORAM
+//#define USE_EDUORAM
 
 #ifdef USE_EDUORAM
     #define WIFI_EDU_USERNAME "acabrerizo@tudelft.nl"
-    #define WIFI_EDU_PASSWORD ""
+    //#define WIFI_EDU_PASSWORD ""
 #else
-    #define WIFI_PASS "testPassword"
+    #define WIFI_PASS ""
 #endif
 
 
@@ -25,7 +25,7 @@
 
 
 //GENERAL SETTINGS
-#define DEVICE_NAME "EWIlocker"
+#define DEVICE_NAME "AppartmentMV"
 
 #define MAX_MAC_COUNT 1000
 

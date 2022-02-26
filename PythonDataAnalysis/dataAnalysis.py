@@ -1,5 +1,7 @@
+from os import times
 import time
 from turtle import color
+from xml.etree.ElementTree import ElementTree
 import redis
 import configs
 import dataFrame
@@ -7,6 +9,9 @@ from datetime import datetime
 import plotly.express as px
 import pandas as pd
 import plotly.graph_objects as go
+import requests
+from mac_vendor_lookup import MacLookup
+import json
 
 allSeenMacAdresses = []
 totalSeenMacAdresses = []
@@ -18,7 +23,7 @@ def getCurrentData():
 
     #Extract the values from the server and place them in a data container
     for key in rserver.scan_iter(configs.DEVICENAME + "*"):
-        timestamp = key.split('|')[2]
+        timestamp = str(int(key.split('|')[2]) + configs.OFFSETTIME) 
         data = rserver.get(key) 
         dataLines = data.splitlines()
         totalSeenMacAdresses.append({"timestamp":int(timestamp), "date": convertUnix(timestamp), "amountOfMacs": int(dataLines[0])})                   #Add the total amount of macs seen in that time stamp to the data container
@@ -33,9 +38,8 @@ def getCurrentData():
                     obj.addTimeFrame(timestamp, elements[1], elements[2], elements[3], elements[4], elements[5], elements[6])
                 else:
                     newObj = dataFrame.DataFrame(MACadress, timestamp, elements[1], elements[2], elements[3], elements[4], elements[5], elements[6])
-                    allSeenMacAdresses.append(newObj)     
+                    allSeenMacAdresses.append(newObj)                     
             i += 1
-
 #Method that can convert the unixtimestamp to normal time     
 def convertUnix(time):
     datetime_obj = datetime.utcfromtimestamp(int(time)/1000)                                                                    #devide by 1000 because of milli
@@ -84,9 +88,10 @@ def plotFigureMacadresses(listOfSpecialTimes):
     for element in sortedList:
         dates.append(element["date"])
         amountOfMacs.append(element["amountOfMacs"])
-        if(str(element["timestamp"]) in listOfSpecialTimes):
-            specialPoints.append(element["amountOfMacs"])
-            specialDates.append(element["date"])
+        if listOfSpecialTimes:
+            if(str(element["timestamp"]) in listOfSpecialTimes):
+                specialPoints.append(element["amountOfMacs"])
+                specialDates.append(element["date"])
     movingAverageList = movingAverage(amountOfMacs) 
 
     fig = go.Figure()
@@ -95,7 +100,7 @@ def plotFigureMacadresses(listOfSpecialTimes):
     fig.add_trace(go.Scatter(x=specialDates, y=specialPoints, mode='markers', name='Special MAC Adres Was Seen'))
     fig.update_layout(title="Amount of Mac adressess seen per timestamp", xaxis_title='TimeStamp', yaxis_title='Amount of MAC adresses')
     fig.show()
-
+    
 #Method that returns a list of all the timeStamps the predetermined special mac adress was seen (for identifying unique user)
 def getTimeStampsSpecialMac():
     if(any(mac.MACadress == configs.specialMac for mac in allSeenMacAdresses)):
@@ -148,19 +153,129 @@ def plotFigureDataPerTimeStamp():
     fig2.update_layout(title="Amount of data seen per timestamp", xaxis_title='TimeStamp', yaxis_title='Amount of data')
     fig2.show()
 
-#Function that returns a list of buckets that represent certain window intervals
-def bucketizeTimeStamps():
-    print("Test")
+    #method for plotting new seen macadresses called here because the timestamplist is needed
+    plotTotalNewMacAdresses(timeStampsList, dateList)
 
+#method that plots all the new seen mac adresses per timestamp
+def plotTotalNewMacAdresses(timeStampList, dateList):
+    listOfMacAdressFirstSeen = []
+    numberOfNewMacs = []
+    
+    for MAC in allSeenMacAdresses:
+        newDict = {"MAC": MAC.MACadress, "FirstSeen": int(MAC.allTimeFrames[0].get("timestamp"))}
+        for frame in MAC.allTimeFrames:
+            if(int(frame.get("timestamp")) < newDict.get("FirstSeen")):
+                newDict["FirstSeen"] = int(frame.get("timestamp"))
+        listOfMacAdressFirstSeen.append(newDict)
+
+    newMacs = 0
+    for timeStamp in timeStampList:
+        for dict in listOfMacAdressFirstSeen:
+            if(dict["FirstSeen"] == int(timeStamp)):
+                newMacs += 1
+        numberOfNewMacs.append(newMacs)
+    print(timeStampList[0])
+    print(timeStampList[-1])
+    print(len(timeStampList))
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=dateList, y=numberOfNewMacs, mode='lines', name='new seen MAC adresses')) 
+    fig.update_layout(title="Amount of new seen MAC adresses per timestamp", xaxis_title='TimeStamp', yaxis_title='new Mac adresses')
+    fig.show()
+
+#Get specific vendor data from mac adresses, which resides in a lookuptable and throws exception when it couldnt find a mac adress
+#Takes 
+def printVendorSpecs():
+    listOfVendors, name, size = [], [], []
+    listOfVendors.append({'Vendor':"No vendor", "Amount": 0})
+    
+    for adress in allSeenMacAdresses:
+        try:
+            vendor = MacLookup().lookup(str(adress.MACadress))
+            addDict = True
+            for item in listOfVendors:
+                if(item.get('Vendor') == vendor):
+                    item['Amount'] = item.get('Amount') + 1
+                    addDict = False
+                    break
+            if(addDict):
+                newdict = {'Vendor': vendor, 'Amount': 1}
+                listOfVendors.append(newdict)
+
+            listOfVendors[0]['Amount']  = listOfVendors[0].get('Amount') + 1
+        except:
+            listOfVendors[0]['Amount']  = listOfVendors[0].get('Amount') + 1
+
+    fig = px.bar(listOfVendors, y='Amount', x='Vendor', text_auto='.2s',
+                title="Default: various text sizes, positions and angles")
+    fig.update_traces(textangle=0, textfont_size=14, textposition="outside", cliponaxis=False)
+    fig.show()
+    
 def main():   
     getCurrentData()
     listOfSpecialTimes = getTimeStampsSpecialMac()
     plotFigureMacadresses(listOfSpecialTimes)
     plotFigureDataPerTimeStamp()
-    #for obj in allSeenMacAdresses:
-    #    print(obj.allTimeFrames)
-        #for element in obj.allTimeFrames:
-        #    print(element["datapktCntTx"])
+    #printVendorSpecs()
     
 if __name__ == "__main__":
     main()
+
+
+
+
+
+    """   for adress in allSeenMacAdresses:
+        r = requests.get('http://macvendors.co/api/%s' % str(adress.MACadress))
+        #print(r.json())
+        #print(r.status_code)
+        try:
+            if('error' not in r.json()['result']):
+                vendor = r.json()['result']['company']
+                addDict = True
+                for item in listOfVendors:
+                    if(item.get('Vendor') == vendor):
+                        item['Amount'] = item.get('Amount') + 1
+                        addDict = False
+                        break
+                if(addDict):
+                    newdict = {'Vendor':vendor, 'Amount': 1}
+                    listOfVendors.append(newdict)    
+
+            else:
+                listOfVendors[0]['Amount']  = listOfVendors[0].get('Amount') + 1
+            i += 1
+            print(i)
+        except:
+            print("an error?")  """
+
+""" 
+#Plot figure amountofMacs per timestamp, when the "special" mac adress is detected, its highlighted in the graph
+def plotFigureMacadresses(listOfSpecialTimes):
+sortedList = sorted(totalSeenMacAdresses, key=lambda d: d['timestamp'])                                                     #sort the list based on the unixtimestamp
+    dates, amountOfMacs, specialPoints, specialDates = [], [], [], []
+    time = sortedList[0].get("timestamp") + configs.BIN
+    adresses = 0
+
+    for element in sortedList:
+        if(element.get("timestamp") < time):
+            adresses += element.get("amountOfMacs") 
+        else:
+            dates.append(convertUnix(time - 0.5 * configs.BIN))
+            amountOfMacs.append(adresses)
+            adresses = 
+        dates.append(element["date"])
+        amountOfMacs.append(element["amountOfMacs"])
+        if listOfSpecialTimes:
+            if(str(element["timestamp"]) in listOfSpecialTimes):
+                specialPoints.append(element["amountOfMacs"])
+                specialDates.append(element["date"])
+    movingAverageList = movingAverage(amountOfMacs) 
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=dates, y=amountOfMacs, mode='lines+markers', name='Amount of MAC adresses', line=dict(color="#7876ff")))
+    fig.add_trace(go.Scatter(x=dates, y=movingAverageList, mode='lines', name='SMA Amount of MAC adresses'))
+    fig.add_trace(go.Scatter(x=specialDates, y=specialPoints, mode='markers', name='Special MAC Adres Was Seen'))
+    fig.update_layout(title="Amount of Mac adressess seen per timestamp", xaxis_title='TimeStamp', yaxis_title='Amount of MAC adresses')
+    fig.show()
+  """
